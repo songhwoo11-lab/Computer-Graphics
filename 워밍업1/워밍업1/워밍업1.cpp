@@ -1,4 +1,4 @@
-﻿#include<iostream>
+#include<iostream>
 #include<random>
 
 std::random_device rd;
@@ -18,14 +18,37 @@ void init(int mat4[4][4])
 	}
 }
 
+void findlowest(int mat4[4][4], int low[4])
+{
+	for (int i = 0; i < 4; ++i) {
+		int min = std::numeric_limits<int>::max();
+		for (int j = 0; j < 4; ++j) {
+			if (min > mat4[i][j]) min = mat4[i][j];
+		}
+		low[i] = min;
+	}
+}
+void findhighest(int mat4[4][4], int high[4])
+{
+	for (int i = 0; i < 4; ++i) {
+		int max = std::numeric_limits<int>::min();
+		for (int j = 0; j < 4; ++j) {
+			if (max < mat4[j][i]) max = mat4[j][i];
+		}
+		high[i] = max;
+	}
+}
+
 void print(int mat4[4][4], int who)
 {
+	int low[4]{}, high[4]{};
 	if(who != -1) std::cout << "mat " << who << '\n';
-	
+	if (eToggle) findlowest(mat4, low);
+	if (fToggle) findhighest(mat4, high);
 	if (trans) {
 		for (int i = 0; i < 4; ++i) {
 			for (int j = 0; j < 4; ++j) {
-				std::cout << mat4[j][i] << ' ';
+				std::cout << mat4[j][i] - low[j] + high[i]  << ' ';
 			}
 			std::cout << "\n";
 		}
@@ -33,7 +56,7 @@ void print(int mat4[4][4], int who)
 	else {
 		for (int i = 0; i < 4; ++i) {
 			for (int j = 0; j < 4; ++j) {
-				std::cout << mat4[i][j] << ' ';
+				std::cout << mat4[i][j] - low[i] + high[j] << ' ';
 			}
 			std::cout << "\n";
 		}
@@ -109,6 +132,7 @@ void minus1Mat(int mat4[4][4]) {
 int main()
 {
 	char cm;
+	
 	init(mat4_1);
 	init(mat4_2);
 
@@ -124,6 +148,7 @@ int main()
 			return 0;
 		case 's':
 			std::cout << "초기화" << '\n';
+			trans = eToggle = fToggle = false;
 			init(mat4_1);
 			init(mat4_2);
 			break;
