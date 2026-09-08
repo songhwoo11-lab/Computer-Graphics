@@ -1,4 +1,4 @@
-﻿#include<iostream>
+#include<iostream>
 #include<vector>
 #include<random>
 #include<windows.h>
@@ -204,7 +204,7 @@ void run()
 		}
 		while(true) {
 			std::cout << "명령어를 입력하려면 **를 입력해주세요 (두 번째 입력에서는 명령어 입력 불가)\n";
-			std::cout << "남은 횟수 (틀리면 사라짐): " << doCnt << "\n";
+			std::cout << "남은 횟수 (틀리면 감소): " << doCnt << "\n";
 			std::cout << "첫번째 위치 입력 > ";
 			std::cin >> w1 >> h1;
 			if (isalpha(w1) and isdigit(h1) and (not isPair[h1 - '1'][w1 - 'a'])) break;
@@ -268,6 +268,9 @@ int main()
 			std::cout << "판 생성하기\n";
 			while (true) {
 				initPan();
+				std::cout << "게임 시작까지...\n";
+				counting(3);
+				system("cls");
 				run();
 				if(cmd != 'r') break;
 			}
