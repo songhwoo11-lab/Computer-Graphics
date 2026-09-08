@@ -1,4 +1,4 @@
-﻿#include<iomanip>
+#include<iomanip>
 #include<iostream>
 #include<vector>
 #include<deque>
@@ -11,6 +11,17 @@ struct Point {
 		return out << "(" << p.x << ", " << p.y << ", " << p.z << ")";
 	}
 };
+
+void print(std::vector<Point> pnts) {
+
+	std::cout << "<<< Vertex List >>>\n";
+	for (int i = 9; i > -1; --i) {
+		std::cout << i << ": ";
+		if (pnts[i].isValid) std::cout << pnts[i] << "\t원점 거리: " << sqrt(pnts[i].x * pnts[i].x + pnts[i].y * pnts[i].y + pnts[i].z * pnts[i].z ) << "\n";
+		else std::cout << "()\n";
+	}
+	std::cout << "------------------\n\n";
+}
 
 class List {
 public:
@@ -26,6 +37,7 @@ public:
 		std::cout << "------------------\n\n";
 	}
 	void push_top(Point p) {
+		if (top == bottom and cnt() == 0) top = bottom = 0;
 		if (top != 10) {
 			list[top++] = p;
 		} else {
@@ -41,6 +53,7 @@ public:
 		}
 	}
 	void push_bottom(Point p) {
+		if (top == bottom and cnt() == 0) top = bottom = 0;
 		if (bottom != 0) {
 			list[--bottom] = p;
 		}
@@ -120,13 +133,16 @@ public:
 		std::cout << "점 개수: " << count << "개\n";
 		return count;
 	}
-	void Osort()
+	std::vector<Point> Osort()
 	{
-		std::sort(list.begin(), list.end(), [](Point a, Point b) {
+		std::vector<Point> pnts;
+		for (const auto& pnt : list)
+			if (pnt.isValid) pnts.push_back(pnt);
+		std::sort(pnts.begin(), pnts.end(), [](Point a, Point b) {
 			return (a.x * a.x + a.y * a.y + a.z * a.z) < (b.x * b.x + b.y * b.y + b.z * b.z);
 			});
-		int count = cnt();
-		for(int i = 0; i < 10 -count; ++i) downSwap();
+		pnts.resize(10);
+		return pnts;
 	}
 	void gCommand()
 	{
@@ -139,7 +155,7 @@ public:
 		for (int i = 0; i < pnts.size(); ++i) {
 			for (int j = 0; j < pnts.size(); ++j) {
 				if (i < j) {
-					int distance = sqrt(pow(pnts[i].x - pnts[j].x, 2) + 
+					double distance = sqrt(pow(pnts[i].x - pnts[j].x, 2) + 
 						pow(pnts[i].y - pnts[j].y, 2) + 
 						pow(pnts[i].z - pnts[j].z, 2));
 					if (distance > far_distance) {
@@ -159,7 +175,6 @@ public:
 				}
 			}
 		}
-
 		std::cout << std::setprecision(3);
 		std::cout << "\n가장 먼 거리에 있는 두 점\n";
 		for (const auto& far : far_pairs) {
@@ -183,10 +198,13 @@ int main()
 {
 	List list;
 	char ch;
+	bool flag = false;
 	Point tmp{};
+	std::vector<Point> sorted;
 
 	while (true) {
-		list.print();
+		if (not flag) list.print();
+		else print(sorted);
 		std::cout << "command > ";
 		std::cin >> ch;
 
@@ -231,7 +249,8 @@ int main()
 			list.clear();
 			break;
 		case 'f': // 각 점에서 원점과의 거리를 계산 후 그 값을 정렬하여 오름차순으로 정렬하여 출력 / 아래에 빈칸이 없도록 만들기
-			list.Osort();
+			sorted = list.Osort();
+			flag ^= 1;
 			break;
 		case 'g': // 리스트에 저장된 점들에서 두 점간의 모든 조합에 대한 거리를 계산하고 가장 먼 두 점, 가장 가까운 두 점을 출력한다. 이때, 두 점의 자표값과 그 점 사이의 거리, 가장 먼 두 점, 가장 가까운 두 점을 출력하고 그 점간의 거리도 출력하기
 			list.gCommand();
