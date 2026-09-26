@@ -1,4 +1,4 @@
-﻿#include "OpenGL.h"
+#include "OpenGL.h"
 
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glew32.lib")
@@ -25,6 +25,8 @@ struct Attr {
 	GLfloat r{};
 	GLfloat angle{};
 	bool rotateRight;
+
+	GLfloat triRotateAngle{};
 };
 
 struct Color { GLfloat r, g, b; };
@@ -46,7 +48,7 @@ public:
 		sz += (isSizeUp ? dsize : -dsize);
 	}
 	GLfloat getSize() const { return sz; }
-	void draw() const
+	void draw(const Shader& shader) const
 	{
 		GLfloat vertices[] = {
 			x - sz, y - sz, 0, color.r, color.g, color.b,
@@ -62,7 +64,12 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 		glEnableVertexAttribArray(1);
 
+
+		
+		auto rotate = glGetUniformLocation(shader.GetShaderID(), "rotate");
+		glUniformMatrix4fv(rotate, 1, false, glm::value_ptr(mat));
 		glDrawArrays(drawMode == 0 ? GL_TRIANGLES : GL_LINE_LOOP, 0, 3);
+		glUniformMatrix4fv(rotate, 1, false, glm::value_ptr(glm::identity<glm::mat4>()));
 	}
 	void drawDegree() const {
 		if (que.empty()) return;
@@ -83,6 +90,7 @@ public:
 
 			glDrawArrays(GL_LINES, 0, 2);
 		}
+		glLineWidth(1.0f);
 	}
 	void Moving() {
 		switch (move) {
@@ -123,28 +131,56 @@ private:
 		case 1: // 북동
 			x += 0.01f;
 			y += 0.01f;
-			if (x + sz >= 1.0f) attr.bounceMove = 3;
-			else if(y + sz >= 1.0f) attr.bounceMove = 2;
+			if (x + sz >= 1.0f) {
+				attr.bounceMove = 2;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
+			else if(y + sz >= 1.0f) {
+				attr.bounceMove = 4;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
 			break;
-		case 2: // 남동
-			x += 0.01f;
-			y -= 0.01f;
-			if (x + sz >=  1.0f) attr.bounceMove = 4;
-			else if (y - sz <=  -1.0f) attr.bounceMove = 1;
-			break;
-		case 3: // 북서
+		case 2: // 북서
 			x -= 0.01f;
 			y += 0.01f;
-			if (x - sz <=  -1.0f) attr.bounceMove = 1;
-			else if (y + sz >= 1.0f) attr.bounceMove = 4;
+			if (x - sz <= -1.0f) {
+				attr.bounceMove = 1;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
+			else if (y + sz >= 1.0f) {
+				attr.bounceMove = 3;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
 			break;
-		case 4: // 남서
+		case 3: // 남서
 			x -= 0.01f;
 			y -= 0.01f;
-			if (x - sz <= -1.0f) attr.bounceMove = 2;
-			else if (y - sz <= -1.0f) attr.bounceMove = 3;
+			if (x - sz <= -1.0f) {
+				attr.bounceMove = 4;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
+			else if (y - sz <= -1.0f) {
+				attr.bounceMove = 2;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
+			break;
+		case 4: // 남동
+			x += 0.01f;
+			y -= 0.01f;
+			if (x + sz >= 1.0f) {
+				attr.bounceMove = 3;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
+			else if (y - sz <= -1.0f) {
+				attr.bounceMove = 1;
+				attr.triRotateAngle = 3.14f * 2 * (attr.bounceMove - 1) / 4;
+			}
 			break;
 		}
+		mat = glm::identity<glm::mat4>();
+		mat = glm::translate(mat, glm::vec3(x, y, 0));
+		mat = glm::rotate(mat, attr.triRotateAngle, glm::vec3(0, 0, 1));
+		mat = glm::translate(mat, glm::vec3(-x, -y, 0));
 	}
 	void ZigzagMove() {
 		switch (attr.ZigzagRight) {
@@ -160,6 +196,7 @@ private:
 					attr.ZigzagUp = true;
 					y = -1.0f + sz;
 				}
+				attr.triRotateAngle = 3.14f  / 2;
 			}
 			break;
 		case false:
@@ -174,46 +211,82 @@ private:
 					attr.ZigzagUp = true;
 					y =  -1.0f + sz;
 				}
+				attr.triRotateAngle = 3.14f * 3 / 2;
 			}
 			break;
 		}
+		mat = glm::identity<glm::mat4>();
+		mat = glm::translate(mat, glm::vec3(x, y, 0));
+		mat = glm::rotate(mat, attr.triRotateAngle, glm::vec3(0, 0, 1));
+		mat = glm::translate(mat, glm::vec3(-x, -y, 0));
 	}
 	void SpikeZigzagMove() {
 		switch (attr.SpikeZigZag) {
 		case 1:
 			x += 0.015625f;
 			y += 0.015625f * 2;
-			if (x + sz >= 1.0f) attr.SpikeZigZag = 4;
-			if (y + sz >= 1.0f) attr.SpikeZigZag = 2;
+			if (x + sz >= 1.0f) {
+				attr.SpikeZigZag = 4;
+				attr.triRotateAngle = 0;
+			}
+			else if (y + sz >= 1.0f) {
+				attr.SpikeZigZag = 2;
+				attr.triRotateAngle = 3.14f;
+			}
 			break;
 		case 2:
 			x += 0.015625f;
 			y -= 0.015625f * 2;
-			if (x + sz >= 1.0f) attr.SpikeZigZag = 3;
-			if (y - sz <= -1.0f) attr.SpikeZigZag = 1;
+			if (x + sz >= 1.0f) {
+				attr.SpikeZigZag = 3;
+				attr.triRotateAngle = 3.14f;
+			}
+			else if (y - sz <= -1.0f) {
+				attr.SpikeZigZag = 1;
+				attr.triRotateAngle = 0;
+			}
 			break;
 		case 3:
 			x -= 0.015625f;
 			y -= 0.015625f * 2;
-			if (x - sz <= -1.0f) attr.SpikeZigZag = 2;
-			if (y - sz <= -1.0f) attr.SpikeZigZag = 4;
+			if (x - sz <= -1.0f) {
+				attr.SpikeZigZag = 2;
+				attr.triRotateAngle = 3.14f;
+			}
+			else if (y - sz <= -1.0f) {
+				attr.SpikeZigZag = 4;
+				attr.triRotateAngle = 0;
+			}
 			break;
 		case 4:
 			x -= 0.015625f;
 			y += 0.015625f * 2;
-			if (x - sz <= -1.0f) attr.SpikeZigZag = 1;
-			if (y + sz >= 1.0f) attr.SpikeZigZag = 3;
+			if (x - sz <= -1.0f) 
+			{
+				attr.SpikeZigZag = 1;
+				attr.triRotateAngle = 0;
+			}
+			else if (y + sz >= 1.0f)
+			{
+				attr.SpikeZigZag = 3;
+				attr.triRotateAngle = 3.14f;
+			}
 			break;
 		}
+		mat = glm::identity<glm::mat4>();
+		mat = glm::translate(mat, glm::vec3(x, y, 0));
+		mat = glm::rotate(mat, attr.triRotateAngle, glm::vec3(0, 0, 1));
+		mat = glm::translate(mat, glm::vec3(-x, -y, 0));
 	}
 	void CircleSpiralMove() {
 		attr.r += 0.001f;
-		attr.angle += 0.1f;
 		if (attr.rotateRight) {
-			x = attr.CircleX + attr.r * cos(-attr.angle);
-			y = attr.CircleY + attr.r * sin(-attr.angle);
+			attr.angle -= 0.1f;
+			x = attr.CircleX + attr.r * cos(attr.angle);
+			y = attr.CircleY + attr.r * sin(attr.angle);
 		}
 		else {
+			attr.angle += 0.1f;
 			x = attr.CircleX + attr.r * cos(attr.angle);
 			y = attr.CircleY + attr.r * sin(attr.angle);
 		}
@@ -223,8 +296,14 @@ private:
 			x = attr.CircleX;
 			y = attr.CircleY;
 			attr.r = 0;
+			attr.angle = attr.rotateRight ? 3.14f : 0.0f;
 			que.clear();
 		}
+
+		mat = glm::identity<glm::mat4>();
+		mat = glm::translate(mat, glm::vec3(x, y, 0));
+		mat = glm::rotate(mat, attr.triRotateAngle + attr.angle, glm::vec3(0, 0, 1));
+		mat = glm::translate(mat, glm::vec3(-x, -y, 0));
 	}
 };
 
@@ -294,7 +373,7 @@ void OpenGL::rendering() {
 	for (const auto& triangle : triangles) 
 	{
 		if (move != Move::None)triangle.drawDegree();
-		triangle.draw();
+		triangle.draw(shader);
 	}
 
 
